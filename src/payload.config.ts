@@ -19,6 +19,9 @@ const dirname = path.dirname(filename)
 
 const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 
+const databaseUri = process.env.DATABASE_URI || ''
+const usesSupabase = databaseUri.includes('supabase.com')
+
 export default buildConfig({
   admin: {
     suppressHydrationWarning: true,
@@ -45,8 +48,9 @@ export default buildConfig({
   csrf: [serverURL],
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URI,
+      connectionString: databaseUri,
       max: Number(process.env.DATABASE_POOL_MAX || 5),
+      ...(usesSupabase ? { ssl: { rejectUnauthorized: false } } : {}),
     },
     push: process.env.PAYLOAD_DB_PUSH === 'true',
   }),

@@ -22,10 +22,27 @@ export function isLocalAppHost(hostname: string) {
   return LOCAL_HOSTS.has(hostname)
 }
 
+/** Hôtes de la plateforme (pas un domaine client) — pas de rewrite multisite. */
+export function isPlatformAppHost(hostname: string) {
+  if (!hostname || isLocalAppHost(hostname)) return true
+  if (hostname.endsWith('.vercel.app')) return true
+
+  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL
+  if (serverUrl) {
+    try {
+      if (getHostname(new URL(serverUrl).host) === hostname) return true
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+
+  return false
+}
+
 export async function getSiteSlugFromHostHeader(hostHeader: string) {
   const hostname = getHostname(hostHeader)
 
-  if (!hostname || isLocalAppHost(hostname)) {
+  if (!hostname || isPlatformAppHost(hostname)) {
     return null
   }
 
