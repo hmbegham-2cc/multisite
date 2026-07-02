@@ -18,17 +18,29 @@ import { Users } from './collections/Users'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+const withProtocol = (value?: string | null) => {
+  if (!value) return null
+  return value.startsWith('http') ? value : `https://${value}`
+}
+
+const vercelProdURL = withProtocol(process.env.VERCEL_PROJECT_PRODUCTION_URL)
+const vercelDeployURL = withProtocol(process.env.VERCEL_URL)
+const explicitServerURL = process.env.NEXT_PUBLIC_SERVER_URL
+
+// Sur Vercel, on ignore un NEXT_PUBLIC_SERVER_URL resté sur localhost (cause classique d'admin blanc)
+// et on dérive l'URL réelle du déploiement.
+const isUsableExplicit = explicitServerURL && !explicitServerURL.includes('localhost')
+const serverURL =
+  (isUsableExplicit ? explicitServerURL : null) ||
+  vercelProdURL ||
+  vercelDeployURL ||
+  explicitServerURL ||
+  'http://localhost:3000'
 
 const databaseUri = process.env.DATABASE_URI || ''
 const usesSupabase = databaseUri.includes('supabase.com')
 
 const blobToken = process.env.BLOB_READ_WRITE_TOKEN
-
-const withProtocol = (value?: string | null) => {
-  if (!value) return null
-  return value.startsWith('http') ? value : `https://${value}`
-}
 
 // Autorise l'origine locale + les URLs Vercel (déploiement courant + prod) pour éviter les 403 CSRF.
 const allowedOrigins = Array.from(
@@ -37,8 +49,8 @@ const allowedOrigins = Array.from(
       serverURL,
       'http://localhost:3000',
       'http://127.0.0.1:3000',
-      withProtocol(process.env.VERCEL_URL),
-      withProtocol(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+      vercelDeployURL,
+      vercelProdURL,
       withProtocol(process.env.VERCEL_BRANCH_URL),
     ].filter(Boolean) as string[],
   ),
