@@ -1,5 +1,6 @@
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -21,6 +22,8 @@ const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 
 const databaseUri = process.env.DATABASE_URI || ''
 const usesSupabase = databaseUri.includes('supabase.com')
+
+const blobToken = process.env.BLOB_READ_WRITE_TOKEN
 
 const withProtocol = (value?: string | null) => {
   if (!value) return null
@@ -74,6 +77,17 @@ export default buildConfig({
     push: process.env.PAYLOAD_DB_PUSH === 'true',
   }),
   editor: lexicalEditor(),
+  plugins: [
+    // Stockage des médias sur Vercel Blob (obligatoire en prod : FS Vercel en lecture seule).
+    // En local sans token, Payload retombe sur le stockage disque par défaut.
+    vercelBlobStorage({
+      enabled: Boolean(blobToken),
+      collections: {
+        media: true,
+      },
+      token: blobToken,
+    }),
+  ],
   secret: process.env.PAYLOAD_SECRET || '',
   serverURL,
   typescript: {
