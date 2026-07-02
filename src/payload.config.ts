@@ -22,6 +22,25 @@ const serverURL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
 const databaseUri = process.env.DATABASE_URI || ''
 const usesSupabase = databaseUri.includes('supabase.com')
 
+const withProtocol = (value?: string | null) => {
+  if (!value) return null
+  return value.startsWith('http') ? value : `https://${value}`
+}
+
+// Autorise l'origine locale + les URLs Vercel (déploiement courant + prod) pour éviter les 403 CSRF.
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      serverURL,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      withProtocol(process.env.VERCEL_URL),
+      withProtocol(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+      withProtocol(process.env.VERCEL_BRANCH_URL),
+    ].filter(Boolean) as string[],
+  ),
+)
+
 export default buildConfig({
   admin: {
     suppressHydrationWarning: true,
@@ -44,8 +63,8 @@ export default buildConfig({
     Sectors,
     Users,
   ],
-  cors: [serverURL],
-  csrf: [serverURL],
+  cors: allowedOrigins,
+  csrf: allowedOrigins,
   db: postgresAdapter({
     pool: {
       connectionString: databaseUri,
